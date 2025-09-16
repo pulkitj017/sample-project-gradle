@@ -1,62 +1,11 @@
-# #!/bin/bash
-
-# # Input file
-# HTML_FILE="./build/reports/dependency-license/index.html"
-
-# # Check if the file exists
-# if [[ ! -f "$HTML_FILE" ]]; then
-#   echo "Error: File '$HTML_FILE' not found!"
-#   exit 1
-# fi
-
-# echo "Fetching licenses from $HTML_FILE..."
-# echo ""
-
-# # Extract and format license details
-# awk '
-#   BEGIN {
-#     print "License Report:\n"
-#     print "----------------------------------------"
-#     printf "%-5s %-30s %-15s %-50s\n", "S.No", "Dependency", "Version", "License"
-#     print "----------------------------------------"
-#   }
-#   /<strong>Group:/ {
-#     group = $0
-#     gsub(/.*<strong>Group:<\/strong> /, "", group)
-#     gsub(/<.*/, "", group)
-#   }
-#   /<strong>Name:/ {
-#     name = $0
-#     gsub(/.*<strong>Name:<\/strong> /, "", name)
-#     gsub(/<.*/, "", name)
-#   }
-#   /<strong>Version:/ {
-#     version = $0
-#     gsub(/.*<strong>Version:<\/strong> /, "", version)
-#     gsub(/<.*/, "", version)
-#   }
-#   /<strong>POM License:/ {
-#     license = $0
-#     gsub(/.*<strong>POM License:/, "", license)
-#     gsub(/<.*/, "", license)
-#     printf "%-5s %-30s %-15s %-50s\n", ++count, group"."name, version, license
-#   }
-# ' "$HTML_FILE"
-
-# echo "----------------------------------------"
-# echo "Done! The licenses have been extracted."
-
 #!/bin/bash
 
-# Path to the HTML file
-HTML_FILE="./build/reports/dependency-license/index.html"
-
-# Output file for storing the report
+INPUT_FILE="./build/reports/dependency-license/licenses.txt"
 OUTPUT_FILE="./license_report.txt"
 
-# Check if the input HTML file exists
-if [[ ! -f "$HTML_FILE" ]]; then
-  echo "Error: File '$HTML_FILE' not found at '$HTML_FILE'!"
+# Check if the input file exists
+if [[ ! -f "$INPUT_FILE" ]]; then
+  echo "Error: File '$INPUT_FILE' not found!"
   exit 1
 fi
 
@@ -67,36 +16,24 @@ echo ""
 # Write the header to the output file
 echo "License Report:" > "$OUTPUT_FILE"
 echo "----------------------------------------" >> "$OUTPUT_FILE"
-printf "%-5s %-30s %-15s %-50s\n" "S.No" "Dependency" "Version" "License" >> "$OUTPUT_FILE"
+printf "%-5s %-40s %-15s %-50s\n" "S.No" "Dependency" "Version" "License" >> "$OUTPUT_FILE"
 echo "----------------------------------------" >> "$OUTPUT_FILE"
 
-# Extract and write license details
+# Parse licenses.txt and extract dependency, version, and license
 awk '
-  /<strong>Group:/ {
-    group = $0
-    gsub(/.*<strong>Group:<\/strong> /, "", group)
-    gsub(/<.*/, "", group)
+  /^([0-9]+)\. Group:/ {
+    split($0, parts, " ")
+    count = parts[1]
+    group = parts[3]
+    name = parts[5]
+    version = parts[7]
   }
-  /<strong>Name:/ {
-    name = $0
-    gsub(/.*<strong>Name:<\/strong> /, "", name)
-    gsub(/<.*/, "", name)
+  /^POM License:/ {
+    license = substr($0, index($0,$3))
+    printf "%-5s %-40s %-15s %-50s\n", count, group"."name, version, license >> "'"$OUTPUT_FILE"'"
   }
-  /<strong>Version:/ {
-    version = $0
-    gsub(/.*<strong>Version:<\/strong> /, "", version)
-    gsub(/<.*/, "", version)
-  }
-  /<strong>POM License:/ {
-    license = $0
-    gsub(/.*<strong>POM License:/, "", license)
-    gsub(/<.*/, "", license)
-    printf "%-5s %-30s %-15s %-50s\n", ++count, group"."name, version, license >> "'"$OUTPUT_FILE"'"
-  }
-' "$HTML_FILE"
+' "$INPUT_FILE"
 
 # Final message
 echo "----------------------------------------" >> "$OUTPUT_FILE"
 echo "Report generated successfully in $OUTPUT_FILE."
-echo "Done! Check the output file for details."
-
