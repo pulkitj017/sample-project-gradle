@@ -44,18 +44,23 @@ licenseReport {
 // === Dependency Updates ===
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 
+def isNonStable = { String v ->
+    if (v == null) return true
+    def stableKeyword = ['RELEASE','FINAL','GA'].any { v.toUpperCase().contains(it) }
+    def regex = /^[0-9]+(\.[0-9]+)*([.-]r)?$/    // e.g. 1.5.18 or 1.5.18-r
+    return !stableKeyword && !(v ==~ regex)
+}
+
 tasks.named("dependencyUpdates", DependencyUpdatesTask) {
     outputFormatter = "plain"
     outputDir = "$projectDir/dependency-updates"
     reportfileName = "report"
 
-    // Relax these if they cause "Failed to determine latest version" in your env
-    // checkConstraints = true
-    // checkBuildEnvironmentConstraints = true
-
-    // Ignore pre-releases unless current is non-stable
+    // Safe reject rule (guards nulls)
     rejectVersionIf {
-        isNonStable(candidate.version) && !isNonStable(currentVersion)
+        def cand = candidate?.version
+        def curr = currentVersion
+        cand == null || (isNonStable(cand) && (curr == null || !isNonStable(curr)))
     }
 }
 
