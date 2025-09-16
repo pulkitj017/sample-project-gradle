@@ -1,15 +1,54 @@
+// plugins {
+//     id 'java'
+//     id 'org.web3j' version '4.5.0'
+// }
+
+// group 'org.web3j'
+// version '0.2.0'
+
+// sourceCompatibility = 1.8
+
+// repositories {
+//     mavenCentral()
+// }
+
+// web3j {
+//     generatedPackageName = 'org.web3j.sample.contracts.generated'
+//     excludedContracts = ['Mortal']
+// }
+
+// ext {
+//     web3jVersion = '4.5.0'
+//     logbackVersion = '1.2.3'
+//     junitVersion = '4.12'
+// }
+
+// dependencies {
+//     implementation "org.web3j:core:$web3jVersion",
+//             "ch.qos.logback:logback-core:$logbackVersion",
+//             "ch.qos.logback:logback-classic:$logbackVersion"
+//     testImplementation "junit:junit:$junitVersion"
+// }
 plugins {
     id 'java'
     id 'org.web3j' version '4.5.0'
+    id 'com.github.ben-manes.versions' version '0.51.0'
+    id 'com.github.jk1.dependency-license-report' version '2.8'
 }
 
 group 'org.web3j'
 version '0.2.0'
 
-sourceCompatibility = 1.8
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
-    mavenCentral()
+    mavenCentral {
+        metadataSources {
+            mavenPom()
+            gradleMetadata()
+        }
+    }
 }
 
 web3j {
@@ -28,4 +67,42 @@ dependencies {
             "ch.qos.logback:logback-core:$logbackVersion",
             "ch.qos.logback:logback-classic:$logbackVersion"
     testImplementation "junit:junit:$junitVersion"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// === License Reports ===
+licenseReport {
+    outputDir = "$buildDir/reports/dependency-license"
+    renderers = [
+        new com.github.jk1.license.render.TextReportRenderer('licenses.txt'),
+        new com.github.jk1.license.render.JsonReportRenderer('licenses.json')
+    ]
+}
+
+// === Dependency Updates ===
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+
+tasks.named("dependencyUpdates", DependencyUpdatesTask) {
+    outputFormatter = "plain"                // also supports "json" or "xml"
+    outputDir = "$projectDir/dependency-updates"
+    reportfileName = "report"
+
+    // Relax these if they cause "Failed to determine latest version" in your env
+    // checkConstraints = true
+    // checkBuildEnvironmentConstraints = true
+
+    // Ignore pre-releases unless current is non-stable
+    rejectVersionIf {
+        isNonStable(candidate.version) && !isNonStable(currentVersion)
+    }
+}
+
+// === Utility for stability check ===
+static boolean isNonStable(String version) {
+    def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { kw -> version.toUpperCase().contains(kw) }
+    def regex = /^[0-9,.v-]+(-r)?$/
+    return !stableKeyword && !(version ==~ regex)
 }
