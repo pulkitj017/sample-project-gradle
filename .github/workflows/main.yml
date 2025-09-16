@@ -18,26 +18,29 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Uninstall preinstalled Gradle
-        run: |
-          sudo rm -rf /usr/share/gradle /usr/local/gradle
-          which gradle && gradle -v || echo "****************************************************Gradle removed**********************************************"
+      - name: Set up Gradle (uses wrapper + caching)
+        uses: gradle/actions/setup-gradle@v3
 
-      - name: Install Gradle 7.0.2
+      - name: Show Gradle and Java versions
         run: |
-          wget https://services.gradle.org/distributions/gradle-7.0.2-bin.zip
-          unzip -q gradle-7.0.2-bin.zip
-          sudo mv gradle-7.0.2 /opt/gradle
-          echo "/opt/gradle/bin" >> $GITHUB_PATH
-          gradle -v
+          ./gradlew -v
+          java -version
 
-      - name: Run Gradle Build & Reports
+      - name: Dependency Updates and License Reports
         run: |
-          chmod +x gradlew || true
-          ./gradlew build || echo "Gradle build failed or skipped"
-          ./gradlew dependencies --write-locks || echo "Gradle lock skipped"
-          ./gradlew dependencyUpdates
+          # If dependency locking is enabled in your project, disable it for this check
+          # export GRADLE_OPTS="$GRADLE_OPTS -Dorg.gradle.dependency.locking=false"
+
+          ./gradlew dependencyUpdates --refresh-dependencies --info -Drevision=release
           ./gradlew generateLicenseReport
+
+      - name: Format outdated dependencies (optional)
+        run: |
+          if [ -f "./get-details-1.sh" ]; then
+            bash ./get-details-1.sh || true
+          else
+            echo "Formatter script not present; skipping."
+          fi
 
       - name: List generated reports
         run: |
@@ -46,12 +49,13 @@ jobs:
           echo "=== License Reports ==="
           ls -l build/reports/dependency-license || echo "No license reports"
 
-      # --- Publish Artifacts ---
       - name: Upload Outdated Dependencies (raw)
+        if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
           name: outdated-dependencies-raw
           path: dependency-updates/report.txt
+          if-no-files-found: warn
 
       - name: Upload Outdated Dependencies (formatted)
         if: success() || failure()
@@ -62,10 +66,9 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload License Reports
+        if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
           name: license-reports
           path: build/reports/dependency-license/**
-
-#           name: sbom-result
-#           path: sbom-result.txt
+          if-no-files-found: warn
