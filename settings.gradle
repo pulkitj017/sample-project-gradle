@@ -1,7 +1,8 @@
-rootProject.name = 'sample-project-gradle'
 pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
     }
 }
+
+rootProject.name = 'sample-project-gradle'
