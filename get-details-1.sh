@@ -1,5 +1,8 @@
 #!/bin/bash
-
+./gradlew build || echo "Gradle build failed or skipped"
+./gradlew dependencies --write-locks || echo "Gradle lock generation skipped"
+bash ./gradlew dependencyUpdates > outdated.txt
+bash ./gradlew generateLicenseReport
 # Input and output files
 input_file="outdated.txt"
 output_file="outdated_dependencies_report.txt"
@@ -16,15 +19,20 @@ output_file="outdated_dependencies_report.txt"
 awk -v out="$output_file" '
 /The following dependencies have later milestone versions:/ {found=1; next}
 found && $0 ~ /^\s*-\s/ {
-    # Extract the dependency name, current version, and latest version
+    # Extract using regex
     match($0, /-\s([^[]+)\[([^\->]+)->([^\]]+)\]/, arr)
-    dependency = arr[1]
-    current_version = arr[2]
-    latest_version = arr[3]
-    # Print the formatted dependency information to the output file
+    dependency = trim(arr[1])
+    current_version = trim(arr[2])
+    latest_version = trim(arr[3])
+
     if (dependency != "" && current_version != "" && latest_version != "") {
         printf "%-65s %-20s %-20s\n", dependency, current_version, latest_version >> out
     }
+}
+function trim(str) {
+    sub(/^[ \t\r\n]+/, "", str)
+    sub(/[ \t\r\n]+$/, "", str)
+    return str
 }
 ' "$input_file"
 
