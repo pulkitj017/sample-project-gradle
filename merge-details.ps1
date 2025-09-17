@@ -1,6 +1,6 @@
 # Inputs (plain text reports)
 $outdatedFile = "outdated_dependencies_report.txt"           
-$licensesTxt  = "licenses.txt"                                
+$licensesTxt  = "/build/reports/dependency-license/licenses.txt"                                
 $outputFile   = "sbom-result.txt"
 
 if (!(Test-Path $outdatedFile)) { throw "Missing $outdatedFile" }
